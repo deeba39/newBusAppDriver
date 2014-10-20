@@ -1,0 +1,326 @@
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="jquery.mobile-1.4.4.min.css"/>
+<script src ="jquery-1.10.2.js"></script>
+<script src ="jquery.mobile-1.4.4.min.js"></script>
+<script src ="jquery.mobile-1.4.4.js"></script>
+<script type="text/javascript" src ="jquery.mobile-1.4.4.min.map"></script>
+<!-- <script type="text/javascript"src="phonegap.js"></script>
+<script src="barcodescanner.js"></script> -->
+<script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?sensor=false"></script> 
+
+
+<script>
+var geocoder;
+ 
+if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(successFunction, errorFunction);
+} 
+//Get the latitude and the longitude;
+function successFunction(position) {
+    var lat = position.coords.latitude;
+    var lng = position.coords.longitude;
+    codeLatLng(lat, lng)
+}
+ 
+function errorFunction(){
+    alert("Geocoder failed");
+}
+ 
+  function initialize() {
+    geocoder = new google.maps.Geocoder();
+  }
+ 
+  function codeLatLng(lat, lng) {
+ 
+    var latlng = new google.maps.LatLng(lat, lng);
+    geocoder.geocode({'latLng': latlng}, function(results, status) {
+      if (status == google.maps.GeocoderStatus.OK) {
+      console.log(results)
+        if (results[1]) {
+         //formatted address
+         $('#resultLocation').text(results[0].formatted_address)
+        //find country name
+             for (var i=0; i<results[0].address_components.length; i++) {
+            for (var b=0;b<results[0].address_components[i].types.length;b++) {
+ 
+            //there are different types that might hold a city admin_area_lvl_1 usually does in come cases looking for sublocality type will be more appropriate
+                if (results[0].address_components[i].types[b] == "administrative_area_level_1") {
+                    //this is the object you are looking for
+                    city= results[0].address_components[i];
+                    break;
+                }
+            }
+        }
+        } else {
+          $('#resultLocation').text("No results found");
+        }
+      } else {
+        $('#resultLocation').text("Geocoder failed due to: " + status);
+      }
+    });
+  }
+			function syncAjax(u){
+			console.log(u);
+				var obj=$.ajax(
+					{url:u,
+					 async:false
+					 }
+				);
+				console.log(obj.responseText);
+				return $.parseJSON(obj.responseText);
+				
+			}
+// var resultDiv;
+
+// function init(){
+// $("#barcodescanner").on("click",funcIon(){
+// startScan();
+// });
+// resultDiv =document.querySelector("#results");
+// }
+// function startScan(){
+// cordova.plugins.barcodeScanner.scan(function(result){
+// var s ="Result:"+ result.text + "<br/>" + "Format:" + result.format +"<br/>"+"Cancelled:"+
+// result.cancelled;
+// resultDiv.innerHTML =s;
+// },
+// function(error){
+// alert("Scanning failed:"+ error);
+// }
+// );
+// }
+
+ $(document).ready(function(){
+
+ $("#reload").click(function(){
+ r=syncAjax("http://50.63.128.135/~csashesi/class2015/aba-debrah/bus_app/busapp_action.php?cmd=1&id=1");
+ $("#results").text(r.Seats.Number_of_seats);
+ });
+ 
+$("#join").click(function(){
+ var available_seats = parseInt($('#results').text(), 10);
+ var newLocation = document.getElementById('resultLocation').innerHTML;
+if(available_seats <= available_seats && available_seats > 0){
+   var deducted_seats  = available_seats-1;
+$('#results').text(deducted_seats);
+var u ="http://50.63.128.135/~csashesi/class2015/aba-debrah/bus_app/busapp_action.php?cmd=3&id=1&numOfSeats="+deducted_seats+"&location="+newLocation;
+return syncAjax(u);
+}
+});
+
+$("#left").click(function(){
+var available_seats = parseInt($('#results').text(),10);
+r=syncAjax("http://50.63.128.135/~csashesi/class2015/aba-debrah/bus_app/busapp_action.php?cmd=1&id=1");
+if(available_seats < r.Seats.total_Capacity && available_seats >= 0) {
+var sum = available_seats+1;
+$('#results').text(sum);
+var u ="http://50.63.128.135/~csashesi/class2015/aba-debrah/bus_app/busapp_action.php?cmd=3&id=1&numOfSeats="+sum;
+return syncAjax(u);
+}else{
+	alert("Total Capacity breached");
+}
+});
+
+ $("#displayList").click(function(){
+r=syncAjax("http://50.63.128.135/~csashesi/class2015/aba-debrah/bus_app/busapp_action.php?cmd=4");
+if(r.Passenger_details.length == 0){
+$("#passengersList").html("Sorry, Nobody has booked a seat today.");
+}
+ var x=1;
+ for (var i = 0; i < r.Passenger_details.length; i++) {
+var passengerContent='<div data-role="collapsible">'+
+   '<h3 align="center">' + 'Passenger '+ x +'</h3>'+
+   '<ul data-role="listview">'+
+   '<li> <b> Name:</b> '+  r.Passenger_details[i].Passenger_name+'</li>'+
+   '<li> <b> Barcode: </b> '+  r.Passenger_details[i].Barcode+'</li>'+
+   '<li> <b> Location: </b> '+  r.Passenger_details[i].Passenger_location+'</li>'+
+   '<li> <b> Date: </b> '+  r.Passenger_details[i].Pass_Date+'</li>'+
+   '<li> <b> Cost of the fare: </b> '+  r.Passenger_details[i].Cost+'</li>'+
+   '<li> <b> Time: </b> '+  r.Passenger_details[i].Pass_Time+'</li>'+
+   '</ul></div>';
+  x++;
+$(passengerContent).appendTo('#passengersList').trigger('create');
+if(x == r.Passenger_details.length){
+ $('#displayList').attr("disabled", true);
+}
+}
+ });
+
+ $("#reservation").click(function(){
+ 	r=syncAjax("http://50.63.128.135/~csashesi/class2015/aba-debrah/bus_app/busapp_action.php?cmd=5");
+   $("#reserved").text(r.busApp.total_number);
+$('#reserved').show();
+  });	
+
+
+ $("#passReserve").click(function(){
+ 	 r=syncAjax("http://50.63.128.135/~csashesi/class2015/aba-debrah/bus_app/busapp_action.php?cmd=8");
+ 	var x=1;
+    for (var i = 0; i < r.Specifc_Passengers.length; i++) {
+  var passDetails ='<ul data-role="listview" style="background-color:gray">'+
+  '<li data-role="list-divider"><h3 align="center">' + 'Passenger '+ x +'</h3></li>'+
+  '<li><b> Name: </b>'+  r.Specifc_Passengers[i].passengerName +'</li>'+
+  '<li><b> Location: </b> '+   r.Specifc_Passengers[i].location+'</li>'+
+  '<li><b> Date: </b> '+   r.Specifc_Passengers[i].date+'</li>'+
+  '<li><b> time: </b> '+   r.Specifc_Passengers[i].time+'</li>'+
+   '</ul></div>';
+   x++;
+ $(passDetails).appendTo($('#listOfPassengers'));
+ if(x == r.Specifc_Passengers.length){
+ $('#passReserve').attr("disabled", true);
+}
+}
+});	
+
+$("#totalRevenue_btn").click(function(){
+$("#totalRevenue").html("If nobody has booked this message will not change");
+   r=syncAjax("http://50.63.128.135/~csashesi/class2015/aba-debrah/bus_app/busapp_action.php?cmd=7");
+// console.log(r.busApp.total_cost * r.busApp.total_num_per_day);
+$("#totalRevenue").html(" ");
+$("#totalRevenue").text(r.busApp.total_cost * r.busApp.total_num_per_day);
+ });
+ 
+$("#averageRevenue_btn").click(function(){
+$("#averageRevenue").html("If nobody has booked this message will not change");
+var total_revenue = parseInt($('#totalRevenue').text(), 10);
+ r=syncAjax("http://50.63.128.135/~csashesi/class2015/aba-debrah/bus_app/busapp_action.php?cmd=7");
+ $("#averageRevenue").html(" ");
+  $("#averageRevenue").text(total_revenue / r.busApp.total_num_per_day); 
+ 
+ });
+
+$("#profit_btn").click(function(){
+$("#profit").html("If nobody has booked this message will not change");
+var total_revenue = parseInt($('#totalRevenue').text(), 10);
+ r=syncAjax("http://50.63.128.135/~csashesi/class2015/aba-debrah/bus_app/busapp_action.php?cmd=7");
+ $("#profit").html(" ");
+  $("#profit").text(total_revenue - r.busApp.total_cost); 
+   var avgRevenue = parseInt($('#averageRevenue').text(), 10);
+   var pro = parseInt($('#profit').text(), 10);
+  r=syncAjax("http://50.63.128.135/~csashesi/class2015/aba-debrah/bus_app/busapp_action.php?cmd=9&totalRevenue="+total_revenue+"&averageRevenue="+avgRevenue+"&profit="+pro); 
+ });
+});
+</script>
+
+
+</head>
+<body onload="initialize()">
+  <!--DriverMainPage-->
+<div data-role="page" id="home" data-theme="b">
+    <div data-role="header">
+       <div data-role="navbar">
+	       <ul>	
+	      <li><a href="#home data-transition=flip" data-icon="home" class="ui-btn-active ui-disabled">Home</a></li>
+		  <h1 align="center">Catch TheBusz</h1>
+	     <li><a	href="#reservedSeats" data-transition="flip" data-icon="carat-r">Reservations</a></li></ul>
+       </div>
+      </div>
+
+<div role="main" class="ui-content" align="center"> 
+    <div data-role="controlgroup" data-type="horizontal">
+         <button id="join" data-icon="plus">JOIN</button>
+         <button id="reload" data-icon="refresh">RELOAD</button>
+         <button id="left" data-icon="minus">LEFT</button>
+    </div>
+
+    <p id='seats' style='font-size:500%'></p>
+     <h2 id='location'>Available Seats</h2>
+    <div  id="results" style='font-size:500%'>0</div>
+    <h2 id='location'>Bus Location</h2>
+     <div  id="resultLocation" style='font-size:100%'></div>
+</div>
+
+  <div data-role="footer">
+	  <div data-role="navbar">
+		<ul>
+		<li><a href="#viewPassengers" data-icon="grid" data-transition="pop">View Passengers Per Day</a></li>
+		<li><a href="#revenue" data-icon="arrow-r">View Revenues</a></li></ul>
+	</div>
+   </div>
+  <!--END OF PAGE--> 
+</div>
+
+<!--Reservations-->
+<div data-role="page" id="reservedSeats" data-theme="b">
+       <div data-role="header">
+           <div data-role="navbar">
+	          <ul>	
+	         <li><a	href="#home" data-transition="pop" data-icon="home">Home</a></li>
+	         <h1 align="center">Catch TheBusz</h1>
+	         <li><a	href="#reserve" data-transition="pop" class="ui-btn-active ui-disabled" data-icon="carat-r">Reservations</a></li>
+	         </ul>
+            </div>
+        </div>
+
+<div role="main" class="ui-content" align="left">
+<h3 align="center">This page shows you the over all people who have booked seats so far. </h3>
+<h4 align="center">You can check in passengers as well. </h4>
+         <p style='font-size:500%'></p>
+         <button id="reservation" align="left">View number of reservations</button>
+         <p id='reserved' style='font-size:290%'></p>
+         <button id= "barcodescanner">Scan a code</button>
+         <p style='font-size:100%'></p>
+         <div id="results"></div>
+        <button id="passReserve">View list of passengers </button>
+        <div data-role="collapsible" id="listOfPassengers"></div>
+</div>
+
+<div data-role="footer">
+        <h1> Developed by deeaba</h1>
+</div>
+ <!--END OF PAGE--> 
+</div>
+
+<!--ViewPassengers-->
+<div data-role="page" id="viewPassengers" data-theme="b">
+      <div data-role="header">
+	     <div data-role="navbar">
+	          <ul>	
+	         <li><a	href="#home" data-transition="pop" data-icon="home">Home</a></li>
+	         <h1 align="center">Catch TheBusz</h1>
+	         <li><a	href="#reserve" data-transition="pop" class="ui-btn-active ui-disabled" data-icon="carat-d">View Passengers</a></li>
+	         </ul>
+            </div>
+       </div>
+<div role="main" class="ui-content" align="left">
+	<br>
+	<h3 align="center">Click button below to view passengers who have booked today.</h3>
+      <button id="displayList">View Passengers</button> 
+      <div id="passengersList" data-role="collapsible-set"></div>
+</div>
+<div data-role="footer">
+        <h1> Developed by deeaba</h1>
+</div>
+
+<!--END OF PAGE--> 
+</div>
+
+<!--ViewRevenues-->
+<div data-role="page" id="revenue" data-theme="b">
+      <div data-role="header">
+	    <div data-role="navbar">
+	          <ul>	
+	         <li><a	href="#home" data-transition="pop" data-icon="home">Home</a></li>
+	         <h1 align="center">Catch TheBusz</h1>
+	         <li><a	href="#reserve" data-transition="pop" class="ui-btn-active ui-disabled" data-icon="carat-d">View Revenues</a></li>
+	         </ul>
+            </div>
+       </div>
+<div role="main" class="ui-content" align="center">
+	<br>
+<h3 align="center">Click buttons below to check out your revenues for today.</h3>
+<button id="totalRevenue_btn">Total Revenue</button> 
+<p id="totalRevenue" style='font-size:200%'></p>
+<button id="averageRevenue_btn">Average Revenue</button> 
+<p id="averageRevenue" style='font-size:200%' ></p>
+<button id="profit_btn">Profit</button> 
+<p id="profit" style='font-size:200%'></p>
+</div>
+<div data-role="footer">
+        <h1> Developed by deeaba</h1>
+</div>
+
+</div>
+</body>
+</html>
